@@ -1,0 +1,13 @@
+{
+    "name": "jmoguelruiz/resource-image",
+    "type": "library",
+    "require": {
+        "yiisoft/yii2": "^2.0"
+    },
+    "authors": [
+        {
+            "name": "Jose Obed Moguel ruiz",
+            "email": "jmoguelruiz@gmail.com"
+        }
+    ]
+}
