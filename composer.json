@@ -1,5 +1,5 @@
 {
-    "name": "jmoguelruiz/resource-image",
+    "name": "jmoguelruiz/yii2-resource-image",
     "type": "library",
     "require": {
         "yiisoft/yii2": "^2.0"
