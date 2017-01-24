@@ -1,6 +1,6 @@
 <?php
 
-namespace jmoguelruiz\yii2\components\resourceimage\models;
+namespace jmoguelruiz\yii2\components\resourceimage;
 
 use Imagine\Image\Box;
 use Imagine\Image\ManipulatorInterface;
@@ -215,6 +215,10 @@ class ResourcePath extends Model
         }
 
         return true;
+    }
+    
+    private function newPath(){
+        
     }
         
 
