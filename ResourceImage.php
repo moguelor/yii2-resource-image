@@ -8,7 +8,7 @@ use jmoguelruiz\yii2\components\resourceimage\ResourcePath;
 use Yii;
 use yii\base\Component;
 use yii\db\ActiveRecord;
-use yii\db\Exception;
+use yii\base\Exception;
 use yii\helpers\ArrayHelper;
 use yii\imagine\Image;
 use yii\web\UploadedFile;
@@ -75,11 +75,11 @@ class ResourceImage extends Component
      * ]
      * @var arr
      */
-    public $basePaths = [   
+    public $basePaths = [
         'dev' => 'images/dev',
         'test' => 'images/test',
         'prod' => 'images'
-     ];
+    ];
 
     /**
      * Type of server, to save final images.
@@ -111,13 +111,13 @@ class ResourceImage extends Component
      * @var string 
      */
     public $cdn;
-    
+
     /**
      * Custom models.
      * @var arr 
      */
     public $modelClasses = [];
-    
+
     /**
      * Base configuration of url.
      * @var arr
@@ -176,18 +176,18 @@ class ResourceImage extends Component
      * @var string
      */
     private $partPathRoot = "";
-    
+
     /**
      * inherit
      */
-    public function init(){
-        
+    public function init()
+    {
+
         $this->modelClasses = ArrayHelper::merge([
-           'resourcePath' => 'jmoguelruiz\yii2\components\resourceimage\ResourcePath'
-        ], $this->modelClasses);
-        
+                    'resourcePath' => 'jmoguelruiz\yii2\components\resourceimage\ResourcePath'
+                        ], $this->modelClasses);
     }
-    
+
     /**
      * Generate new path.
      * @param arr $options Options of each part to generate path.
@@ -209,13 +209,74 @@ class ResourceImage extends Component
         $this->setConfigPartsToPath($options);
 
         $resourcePath = $this->model('ResourcePath');
-        
+
         $resourcePath->path = $this->generateUrl();
         $resourcePath->config = $this->configUrl;
 
         return $resourcePath;
     }
+
+    /**
+     * 
+     * Save images by size.
+     * 
+     * @param string $size size.
+     * @param ResourcePath $tempPath Temp path for the image.
+     * @param arr $functionNames An array with the function names to will be procecceed.
+     * @return true
+     * @throws Exception Function $functionName not exist
+     */
+    public function saveBySize($size, $tempPath, $functionNames = null, $options = [])
+    {
+
+        $options = ArrayHelper::merge([
+            'saveOptions' => ['deleteTemp' => true]
+        ], $options);
+        
+        try {
+
+            if ($tempPath instanceof ResourcePath && $tempPath->config['resource']['isTemp']) {
+                
+                $newTempPath = $this->newPath(ArrayHelper::merge($tempPath->config, [
+                    'size' => ['type' => $size]
+                ]));
+                
+                $this->copy($tempPath, $newTempPath);
+                
+                $this->proccessImageWithFunctions($newTempPath, $functionNames);
+                
+                $this->save($newTempPath, $newTempPath, $options['saveOptions']);
+                
+                $this->delete($newTempPath);
+                
+                return true;
+            }
+            
+        } catch (Exception $ex) {
+            Yii::error($ex);
+            return false;
+        }
+    }
     
+    /**
+     * Proccess the image in the path specified with the functions name passed.
+     * @param ResourcePath $path Path.
+     * @param arr $functionNames Function names to will be procceced.
+     * @throws Exception Function $functionName not exist.
+     */
+    private function proccessImageWithFunctions($path, $functionNames = [])
+    {
+        if (!empty($functionNames) && $path instanceof ResourcePath)
+            foreach ($functionNames as $functionName) {
+                
+                if (method_exists(get_class($this), $functionName)) {
+                    $this->$functionName($path);
+                } else {
+                    throw new Exception("Function $functionName not exist");
+                }
+            }
+    }
+
     /**
      * Save the file in non-temp path.
      * 
@@ -227,23 +288,18 @@ class ResourceImage extends Component
      *   'deleteTemp' => true
      * ]
      */
-    public function save($src, $options = [])
+    public function save($src, $dst = null, $options = [])
     {
-        
-        $dst = $src;
-        
-        if($src instanceof ResourcePath){
-            
-            if($src->config['resource']['isTemp']){
-                $dst = str_replace('_' . $this->prefixTemp, '', $src->path);
+        if ($src instanceof ResourcePath) {
+            if ($src->config['resource']['isTemp']) {
+                $dst = str_replace('_' . $this->prefixTemp, '', $dst->path);
             }
-            
         }
         
         $options = ArrayHelper::merge([
                     'deleteTemp' => true,
                         ], $options);
-        
+
         if ($this->serverType == ResourceImage::SERVER_LOCAL) {
             $this->copy($src, $dst);
             if ($options['deleteTemp']) {
@@ -255,7 +311,7 @@ class ResourceImage extends Component
          * @todo: implement in mode s3.
          */
     }
-    
+
     /**
      * Upload a file.
      * 
@@ -265,11 +321,11 @@ class ResourceImage extends Component
      * @return bool True if the file was uploaded correctly False otherwise; 
      * 
      */
-    
-    public function upload($dst, $file){
-        
+    public function upload($dst, $file)
+    {
+
         $dst = $dst instanceof ResourcePath ? $dst->path : $dst;
-        
+
         try {
             $file->saveAs($dst);
         } catch (Exception $ex) {
@@ -278,9 +334,8 @@ class ResourceImage extends Component
         }
 
         return true;
-        
     }
-    
+
     /**
      * Save a copy of file.
      * 
@@ -304,7 +359,7 @@ class ResourceImage extends Component
 
         return true;
     }
-    
+
     /**
      * Delete file.
      * @param string | ResourcePath $src File of delete. 
@@ -322,7 +377,7 @@ class ResourceImage extends Component
          * @todo: implement in mode s3.
          */
     }
-    
+
     /**
      * Generate the thumbnail.
      * 
@@ -342,7 +397,6 @@ class ResourceImage extends Component
     {
 
         $src = $src instanceof ResourcePath ? $src->path : $src;
-
         $options = ArrayHelper::merge([
                     'width' => 200,
                     'height' => 200,
@@ -360,7 +414,7 @@ class ResourceImage extends Component
 
         return true;
     }
-    
+
     /**
      * Generate Crop.
      * 
@@ -381,7 +435,7 @@ class ResourceImage extends Component
     {
 
         $src = $src instanceof ResourcePath ? $src->path : $src;
-        
+
         $options = ArrayHelper::merge([
                     'width' => 200,
                     'height' => 200,
@@ -457,7 +511,7 @@ class ResourceImage extends Component
             $this->partPathResource,
             $this->partPathSize,
             $this->partPathName
-        ], "strlen"));
+                        ], "strlen"));
     }
 
     /*
@@ -492,9 +546,9 @@ class ResourceImage extends Component
                         ], $options);
 
         $this->configUrl['basePath'] = $options;
-        
+
         $basePath = $this->getBasePath($options['enviroment']);
-        
+
         $this->setPartPath('basePath', $basePath);
     }
 
@@ -552,9 +606,9 @@ class ResourceImage extends Component
                         ], $options);
 
         $this->configUrl['name'] = $options;
-        
+
         $name = $options['title'];
-        
+
         if (empty($name)) {
             $name = $this->getDefaultNameImageResource();
         }
@@ -613,13 +667,13 @@ class ResourceImage extends Component
             return $resources[$type];
         }
     }
-    
+
     /**
      * Get base path configured.
      * @param string $enviroment Enviroment running.
      * @return string
      */
-     private function getBasePath($enviroment = null)
+    private function getBasePath($enviroment = null)
     {
         if (!empty($this->basePaths[$enviroment])) {
             return $this->basePaths[$enviroment];
@@ -664,7 +718,7 @@ class ResourceImage extends Component
         $property = 'partPath' . $partPath;
         return $this->$property;
     }
-    
+
     /**
      * Get object instance of model
      * @param string $name
@@ -676,7 +730,5 @@ class ResourceImage extends Component
         $className = $this->modelClasses[ucfirst($name)];
         return Yii::createObject(array_merge(['class' => $className]));
     }
-    
-    
 
 }
