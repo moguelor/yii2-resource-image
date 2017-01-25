@@ -1,46 +1,56 @@
 <?php
 
-namespace jmoguelruiz\yii2\components\resourceimage;
+namespace jmoguelruiz\yii2\components;
 
 use Imagine\Image\Box;
 use Imagine\Image\ManipulatorInterface;
 use jmoguelruiz\yii2\components\resourceimage\ResourcePath;
 use Yii;
 use yii\base\Component;
-use yii\db\ActiveRecord;
 use yii\base\Exception;
+use yii\db\ActiveRecord;
 use yii\helpers\ArrayHelper;
 use yii\imagine\Image;
 use yii\web\UploadedFile;
 use const YII_ENV;
 
 /**
- * Expects:
  * 
- * * Habilitar componente en diferentes entornos. - YA
- *   * Manejar tres entornos predefinidos. - YA
- *      * dev, test, prod. - YA
- *          * Si el usuario tiene mas enviroments modificar el ResourceImage local 
- *            para agregar las propiedades de cada enviroment faltantes. - YA
- *   * Poder cambiar base paths de cada entorno. - YA
- *   * Donde se guardarán las imagenes. (local o s3)
- * * Manejar tipos de recursos. - YA
- *   * avatar, galeria, logo - YA
- * * Guardar imagen en el servidor local. - YA
- * * Guardar imagen en el servidor de amazon s3.
- * * Manejo de directorios temporales avatar_temp. - YA
- * * Manejo de directorios finales avatar. - YA
- * * Generar nombre para guardar el archivo. - YA
- * * Procesar imagen antes de guardar, crop , resize etc. - YA
- * * Guardar diferentes tamaños del archivo, original, thumb, etc. - YA
- * * Obtener url del directorio temporal - YA
- * * Obtener url del directorio final. - YA
- * * Habilitar base_path donde se guardaran las imagenes. - YA
- * * Guardar imagen desde una url.
- * * Subir la imagen a un directorio temporal para procesarla despues. - YA
- * * Renombrar un archivo. 
- * * Eliminar un archivo. 
- * * Optimización de imagenes al subir.
+ * Manager of images.
+ * 
+ * Please put the follow code in components part of your yii2 proyect.
+ * 
+ * [
+ *  'components' => [
+ *     'resourceImage' => [
+ *               'class' => 'common\components\ResourceImage',
+ *               // Optional Configs
+ *               'modelClasses' => [ // Custom models.
+ *                   'ResourcePath' => 'common\components\ResourcePath'
+ *               ],
+ *               'basePaths' => [ // Base paths of your project in each enviroment.
+ *                   'prod' => 'images/',
+ *                   'test' => 'images/test',
+ *                   'dev' => 'images/dev'
+ *               ],
+ *               'serverType' => ResourceImage::SERVER_LOCAL // Server type for now is only saved in same server.
+ *               'prefixTemp' => 'temp', // Temp prefix for folders.
+ *               'containerBasePath' => "@frontend/web", // Container base to save images.
+ *               'cdn' => 'http://www.project.com', // If you want cdn.
+ *               'symbolConcatTime' => '_' // Symbol to concat the name with the string time.
+ *           ],
+ *     ...
+ *  ]
+ * ]
+ * 
+ * @author Jose Obed Moguel Ruiz <jmoguelruiz@gmail.com>
+ * 
+ * @todo:
+ * 
+ * * Save image in the server amazon s3.
+ * * Save image from web.
+ * * Rename image file.
+ * * Optimize images before upload.
  * 
  */
 class ResourceImage extends Component
@@ -212,6 +222,12 @@ class ResourceImage extends Component
 
         $resourcePath->path = $this->generateUrl();
         $resourcePath->config = $this->configUrl;
+        $resourcePath->name = $this->partPathName;
+        $resourcePath->basePath = $this->partPathBasePath;
+        $resourcePath->resource = $this->partPathResource;
+        $resourcePath->size = $this->partPathSize;
+        $resourcePath->root = $this->partPathRoot;
+
 
         return $resourcePath;
     }
@@ -223,41 +239,87 @@ class ResourceImage extends Component
      * @param string $size size.
      * @param ResourcePath $tempPath Temp path for the image.
      * @param arr $functionNames An array with the function names to will be procecceed.
+     * @param arr $options Options.
      * @return true
+     * 
+     * Options default. 
+     * [
+     *  'saveOptions' => ['deleteTemp' => true]
+     * ]
+     * 
      * @throws Exception Function $functionName not exist
      */
     public function saveBySize($size, $tempPath, $functionNames = null, $options = [])
     {
 
         $options = ArrayHelper::merge([
-            'saveOptions' => ['deleteTemp' => true]
-        ], $options);
-        
+                    'saveOptions' => ['deleteTemp' => true]
+                        ], $options);
+
         try {
 
             if ($tempPath instanceof ResourcePath && $tempPath->config['resource']['isTemp']) {
-                
+
                 $newTempPath = $this->newPath(ArrayHelper::merge($tempPath->config, [
-                    'size' => ['type' => $size]
+                            'size' => ['type' => $size]
                 ]));
-                
+
                 $this->copy($tempPath, $newTempPath);
-                
+
                 $this->proccessImageWithFunctions($newTempPath, $functionNames);
-                
+
                 $this->save($newTempPath, $newTempPath, $options['saveOptions']);
-                
+
                 $this->delete($newTempPath);
-                
+
                 return true;
             }
-            
         } catch (Exception $ex) {
             Yii::error($ex);
             return false;
         }
     }
-    
+
+    /**
+     * Get web url.
+     * 
+     * @param string $name Name of the image.
+     * @param string $resourceType Resource Type.
+     * @param string $size Size.
+     * @return string
+     */
+    public function getWebUrl($name, $resourceType, $size)
+    {
+
+        $path = $this->newPath([
+            'resource' => ['type' => $resourceType],
+            'size' => ['type' => $size],
+            'name' => ['title' => $name, 'concatTime' => false]
+        ]);
+
+        return $path->path;
+    }
+
+    /**
+     * 
+     * Get default image web url.
+     * 
+     * @param string $resourceType Resource type.
+     * @param string $size Size.
+     * @return string
+     */
+    public function getDefaultWebUrl($resourceType, $size)
+    {
+
+        $path = $this->newPath([
+            'resource' => ['type' => $resourceType],
+            'size' => ['type' => $size],
+            'name' => ['concatTime' => false]
+        ]);
+
+        return $path->path;
+    }
+
     /**
      * Proccess the image in the path specified with the functions name passed.
      * @param ResourcePath $path Path.
@@ -268,7 +330,7 @@ class ResourceImage extends Component
     {
         if (!empty($functionNames) && $path instanceof ResourcePath)
             foreach ($functionNames as $functionName) {
-                
+
                 if (method_exists(get_class($this), $functionName)) {
                     $this->$functionName($path);
                 } else {
@@ -295,7 +357,7 @@ class ResourceImage extends Component
                 $dst = str_replace('_' . $this->prefixTemp, '', $dst->path);
             }
         }
-        
+
         $options = ArrayHelper::merge([
                     'deleteTemp' => true,
                         ], $options);
@@ -490,7 +552,7 @@ class ResourceImage extends Component
      * Assign config of each part of path.
      * @param arr $options Configs of each part of path.
      */
-    private function setConfigPartsToPath($options)
+    public function setConfigPartsToPath($options)
     {
 
         $this->setConfigRoot(!empty($options['root']) ? $options['root'] : []);
@@ -503,7 +565,7 @@ class ResourceImage extends Component
     /**
      * Generate url from configuration.
      */
-    private function generateUrl()
+    public function generateUrl()
     {
         return implode(DIRECTORY_SEPARATOR, array_filter([
             $this->partPathRoot,
@@ -519,7 +581,7 @@ class ResourceImage extends Component
      * @param arr $options Options to generate part.
      */
 
-    private function setConfigRoot($options)
+    public function setConfigRoot($options)
     {
 
         $options = ArrayHelper::merge([
@@ -538,7 +600,7 @@ class ResourceImage extends Component
      * @param arr $options Options to generate part.
      */
 
-    private function setConfigBasePath($options)
+    public function setConfigBasePath($options)
     {
 
         $options = ArrayHelper::merge([
@@ -557,7 +619,7 @@ class ResourceImage extends Component
      * @param arr $options Options to generate part.
      */
 
-    private function setConfigResource($options)
+    public function setConfigResource($options)
     {
 
         $options = ArrayHelper::merge([
@@ -581,7 +643,7 @@ class ResourceImage extends Component
      * @param arr $options Options to generate part.
      */
 
-    private function setConfigSize($options)
+    public function setConfigSize($options)
     {
 
         $options = ArrayHelper::merge([
@@ -598,7 +660,7 @@ class ResourceImage extends Component
      * @param arr $options Options to generate part.
      */
 
-    private function setConfigName($options)
+    public function setConfigName($options)
     {
 
         $options = ArrayHelper::merge([
@@ -624,7 +686,7 @@ class ResourceImage extends Component
      * Get the enviroment running in the real time.
      * @return string
      */
-    private function getEnviromentRunning()
+    public function getEnviromentRunning()
     {
         return YII_ENV;
     }
@@ -634,7 +696,7 @@ class ResourceImage extends Component
      * enviroment.
      * @return type
      */
-    private function getAbsoluteDirectory()
+    public function getAbsoluteDirectory()
     {
         return Yii::getAlias($this->containerBasePath);
     }
@@ -644,7 +706,7 @@ class ResourceImage extends Component
      * @param string $size Type of size;
      * @return string
      */
-    private function getSize($size)
+    public function getSize($size)
     {
 
         $sizes = $this->getSizes();
@@ -658,7 +720,7 @@ class ResourceImage extends Component
      * Get the resource specified.
      * @param string $type Type of resource.
      */
-    private function getResource($type)
+    public function getResource($type)
     {
 
         $resources = $this->resources();
@@ -673,7 +735,7 @@ class ResourceImage extends Component
      * @param string $enviroment Enviroment running.
      * @return string
      */
-    private function getBasePath($enviroment = null)
+    public function getBasePath($enviroment = null)
     {
         if (!empty($this->basePaths[$enviroment])) {
             return $this->basePaths[$enviroment];
@@ -685,10 +747,10 @@ class ResourceImage extends Component
      * @param string $type Type of resource.
      * @return string
      */
-    private function getDefaultNameImageResource()
+    public function getDefaultNameImageResource($resourceType = null)
     {
 
-        $type = $this->configUrl['resource']['type'];
+        $type = empty($resourceType) ? $this->configUrl['resource']['type'] : $resourceType;
 
         $resources = $this->resourcesDefault($type);
 
@@ -702,7 +764,7 @@ class ResourceImage extends Component
      * @param string $partPath Name of part path 'resource, name, size, root, basePath'
      * @param string $value Value to set in part path.
      */
-    private function setPartPath($partPath, $value)
+    public function setPartPath($partPath, $value)
     {
         $property = 'partPath' . ucwords($partPath);
         $this->$property = $value;
@@ -713,7 +775,7 @@ class ResourceImage extends Component
      * @param string $partPath Name of part path;
      * @return string Value of that part path.
      */
-    private function getPartPath($partPath)
+    public function getPartPath($partPath)
     {
         $property = 'partPath' . $partPath;
         return $this->$property;

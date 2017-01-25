@@ -9,5 +9,10 @@
             "name": "Jose Obed Moguel ruiz",
             "email": "jmoguelruiz@gmail.com"
         }
-    ]
+    ],
+    "autoload": {
+        "psr-4": {
+            "jmoguelruiz\\yii2\\components\\": ""
+        }
+    }
 }
