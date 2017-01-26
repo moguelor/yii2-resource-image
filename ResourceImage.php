@@ -4,7 +4,7 @@ namespace jmoguelruiz\yii2\components;
 
 use Imagine\Image\Box;
 use Imagine\Image\ManipulatorInterface;
-use jmoguelruiz\yii2\components\resourceimage\ResourcePath;
+use jmoguelruiz\yii2\components\ResourcePath;
 use Yii;
 use yii\base\Component;
 use yii\base\Exception;
@@ -194,7 +194,7 @@ class ResourceImage extends Component
     {
 
         $this->modelClasses = ArrayHelper::merge([
-                    'resourcePath' => 'jmoguelruiz\yii2\components\resourceimage\ResourcePath'
+                    'ResourcePath' => 'jmoguelruiz\yii2\components\ResourcePath'
                         ], $this->modelClasses);
     }
 
@@ -664,7 +664,9 @@ class ResourceImage extends Component
     {
 
         $options = ArrayHelper::merge([
-                    'title' => '', 'ext' => '', 'concatTime' => true
+                    'title' => '', 
+                    'ext' => '', 
+                    'concatTime' => true
                         ], $options);
 
         $this->configUrl['name'] = $options;
