@@ -1,6 +1,6 @@
 ### Welcome to the yii2-resource-image wiki!
 
-This is a component for yii2, that manager the images to upload in server and manage the generation of paths easiest.
+This is a component for yii2, to manage the images to upload in server and the generation of paths easiest.
 
 # Override
 
@@ -12,37 +12,37 @@ I think that the url path is formed for five parts: **root, base, resource, size
 * **size** : thumb
 * **name** : image_1485386176.jpg
 
-And all togueter http://project-template.dev/images/dev/player/thumb/image_1485386176.jpg
+And all togueter is http://project-template.dev/images/dev/player/thumb/image_1485386176.jpg
 
-For that reason, I build this component for configure each part and generate the url most easy, I include many functions that help you for manager the images files.
+For that reason, I built this component to configure each part and generate the url most easy, I included many functions that help you to manage the images files.
 
 Each part has its own configuration.
 
 ## Root 
 
-This part is for root of url, the follow code is for default configuration:
+This part is for root of url, the follow code is the default configuration:
 
 ```php
 [
   'isWebUrl' => true
 ]
 ```
-When `isWebUrl` its true generate `http://project-template.dev/` otherwise its `/Users/josemoguel/Documents/fuentes/project-template/frontend/web`
+When `isWebUrl` is true, generate `http://project-template.dev/` otherwise is `/Users/josemoguel/Documents/fuentes/project-template/frontend/web`
 
 ## Basepath
 
-This part is automatically configured of environment that you are running.
+This part is automatically configured from environment that you are running.
 
 ```php
 [
  'enviroment' => $this->getEnviromentRunning()
 ]
 ```
-You can set the environment that you want, default are three `dev,test,prod`.
+You can set the environment if you want, there are three environments by default `dev,test,prod`.
 
 ## Resource
 
-The resource that belongs to the image, player, user, gamer.
+The resource that belongs to the image, player, user, gamer for example.
 
 ```php
 [
@@ -51,7 +51,7 @@ The resource that belongs to the image, player, user, gamer.
 ]
 ```
 
-When `isTemp` is `true`, adding to the resource the prefix **_temp** or the one that you have configured `player_temp`, set `isTemp = true` for process the image, and later save in the real directory.
+When `isTemp` is `true`, add to the resource the prefix **_temp** or if you have one configured `player_temp`, set `isTemp = true` for process the image, and later save in the real directory.
 
 ## Size
 
@@ -74,8 +74,7 @@ You can assign the name of image.
 ]
 ```
 
-If you put `concatTime = true` this for concat the time in the name image resolving the problem with cache and the save name. `image_1485386176.jpg`.
-
+If you put `concatTime = true` will concat the time in the name image resolving the problem with cache. `image_1485386176.jpg`.
 
 
 # Installation
@@ -187,7 +186,7 @@ class ResourceImage extends \jmoguelruiz\yii2\components\ResourceImage
 
 ```
 
-Create the folders where the images will be saved and configuring your enviroments enviroment/index.php for permissions.
+Create the folders where the images will be saved and configuring your enviroments `enviroment/index.php` for permissions.
 
 ```php
     'Development' => [
