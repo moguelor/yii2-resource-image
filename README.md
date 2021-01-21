@@ -372,4 +372,4 @@ class ResourcePath extends Model
 
 You can use this component if you want can contribute send email to jmoguelruiz@gmail.com.
 
-_**From comunity to comunity...**_
+_**From community to community...**_
